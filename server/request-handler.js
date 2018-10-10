@@ -11,8 +11,9 @@ this file and include it in basic-server.js so that it actually works.
 *Hint* Check out the node module documentation at http://nodejs.org/api/modules.html.
 
 **************************************************************/
+var messages = []
 
-var requestHandler = function(request, response) {
+var requestHandler = function (request, response) {
   // Request and Response come from node's http module.
   //
   // They include information about both the incoming request, such as
@@ -27,7 +28,7 @@ var requestHandler = function(request, response) {
   // Adding more logging to your server can be an easy way to get passive
   // debugging help, but you should always be careful about leaving stray
   // console.logs in your code.
-  console.log('Serving request type ' + request.method + ' for url ' + request.url);
+  // console.log('Serving request type ' + request.method + ' for url ' + request.url);
 
   // The outgoing status.
   var statusCode = 200;
@@ -40,6 +41,8 @@ var requestHandler = function(request, response) {
   // You will need to change this if you are sending something
   // other than plain text, like JSON or HTML.
   headers['Content-Type'] = 'text/plain';
+  // headers['Content-Type'] = 'application/json';
+
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
@@ -52,7 +55,32 @@ var requestHandler = function(request, response) {
   //
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
-  response.end('Hello, World!');
+
+
+  if (request.method === 'GET' && request.url === '/classes/messages') {
+    var result = JSON.stringify({ results: messages })
+    // console.log('get', result);
+    response.end(result);
+  } else if (request.method === 'POST' && request.url === '/classes/messages') {
+    var statusCode = 201;
+    var postdata = ''
+
+    request.on('data', function (data) {
+      postdata = postdata + data
+    })
+
+    request.on('end', function () {
+      messages.push(JSON.parse(postdata))
+      result = JSON.stringify({ results: messages })
+      response.writeHead(statusCode, headers);
+      response.end(result);
+    })
+
+  } else {
+    var statusCode = 404;
+    response.writeHead(statusCode, headers);
+    response.end('404 Error');
+  }
 };
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
@@ -71,3 +99,5 @@ var defaultCorsHeaders = {
   'access-control-max-age': 10 // Seconds.
 };
 
+
+module.exports = { requestHandler }
